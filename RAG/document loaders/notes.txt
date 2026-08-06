@@ -1,0 +1,1131 @@
+Retrieval-Augmented Generation (RAG) – Complete End-to-End Notes
+
+⸻
+
+Retrieval-Augmented Generation (RAG)
+
+Definition
+
+Retrieval-Augmented Generation (RAG) is an AI architecture that combines:
+
+* Information Retrieval (IR) → Finds relevant information from external sources.
+* Large Language Model (LLM) → Uses the retrieved information to generate accurate responses.
+
+Instead of relying only on the model’s internal knowledge, RAG allows the model to search external documents before answering.
+
+⸻
+
+Why RAG is Needed
+
+LLMs have several limitations:
+
+1. Hallucination
+
+The model may generate incorrect facts confidently.
+
+Example:
+
+Question:
+
+Who is the CEO of Tesla in 2050?
+
+LLM may invent an answer.
+
+⸻
+
+2. Outdated Knowledge
+
+Models only know data until their training cutoff.
+
+Example:
+Ask today’s stock price.
+
+LLM cannot know unless connected to external data.
+
+⸻
+
+3. No Private Knowledge
+
+LLMs do not know your company’s documents, PDFs, databases, emails, or reports.
+
+⸻
+
+4. Huge Context Cannot Fit
+
+A company may have:
+
+* 1000 PDFs
+* Millions of documents
+
+These cannot all be placed into the prompt.
+
+⸻
+
+RAG solves all these issues.
+
+⸻
+
+Basic Idea of RAG
+
+Instead of asking only the LLM:
+
+User
+   ↓
+LLM
+   ↓
+Answer
+
+Use retrieval first:
+
+User
+   ↓
+Retriever
+   ↓
+Relevant Documents
+   ↓
+LLM
+   ↓
+Answer
+
+The LLM answers using retrieved knowledge.
+
+⸻
+
+Complete RAG Architecture
+
+                    User Query
+                        │
+                        ▼
+                Query Embedding
+                        │
+                        ▼
+              Vector Database Search
+                        │
+                        ▼
+             Top Relevant Chunks
+                        │
+                        ▼
+             Prompt Construction
+                        │
+                        ▼
+                    Large LLM
+                        │
+                        ▼
+                  Final Response
+
+⸻
+
+Components of RAG
+
+1. Knowledge Source
+
+This is where your information exists.
+
+Examples:
+
+* PDFs
+* Word documents
+* Excel files
+* Websites
+* Notion
+* Confluence
+* Databases
+* Emails
+* APIs
+* Books
+
+Example:
+
+Employee Handbook.pdf
+Leave Policy.pdf
+HR Rules.pdf
+Company Wiki
+Sales Reports
+
+⸻
+
+2. Document Loading
+
+Documents are loaded into memory.
+
+Popular loaders:
+
+LangChain:
+
+PyPDFLoader
+TextLoader
+CSVLoader
+DocxLoader
+WebBaseLoader
+
+LlamaIndex:
+
+SimpleDirectoryReader
+
+Output:
+
+Raw Text
+
+⸻
+
+3. Text Cleaning
+
+Before storing:
+
+Remove:
+
+* HTML
+* Extra spaces
+* Headers
+* Footers
+* Empty lines
+
+Convert:
+
+PDF
+↓
+Plain Text
+
+⸻
+
+Example
+
+Original
+
+Page 1
+Company Policy
+--------------
+Employees receive
+30 annual leave days.
+
+After cleaning
+
+Employees receive 30 annual leave days.
+
+⸻
+
+4. Chunking
+
+LLMs cannot process extremely long documents efficiently.
+
+Split into smaller chunks.
+
+Example
+
+Document
+
+500 pages
+
+↓
+
+Chunks
+
+Chunk 1
+Chunk 2
+Chunk 3
+...
+Chunk 5000
+
+⸻
+
+Why Chunking?
+
+Better retrieval.
+
+Instead of retrieving entire PDF,
+
+retrieve only relevant section.
+
+⸻
+
+Chunk Size
+
+Typical:
+
+200 tokens
+500 tokens
+1000 tokens
+
+Depends on application.
+
+⸻
+
+Chunk Overlap
+
+Suppose:
+
+Chunk size:
+
+500 tokens
+
+Overlap:
+
+100 tokens
+
+Result:
+
+Chunk1
+1–500
+Chunk2
+401–900
+Chunk3
+801–1300
+
+Overlap preserves context.
+
+⸻
+
+Types of Chunking
+
+Fixed Chunking
+
+Split every N tokens.
+
+Simple.
+
+⸻
+
+Sentence Chunking
+
+Split by sentences.
+
+⸻
+
+Paragraph Chunking
+
+Split by paragraphs.
+
+⸻
+
+Recursive Chunking
+
+LangChain default.
+
+Uses:
+
+Paragraph
+
+↓
+
+Sentence
+
+↓
+
+Words
+
+Until desired size.
+
+Best option.
+
+⸻
+
+Semantic Chunking
+
+Groups similar ideas together.
+
+Uses embeddings.
+
+Higher quality.
+
+⸻
+
+5. Embeddings
+
+This is the heart of RAG.
+
+Definition:
+
+Embeddings convert text into vectors (lists of numbers) representing semantic meaning.
+
+Example
+
+"I love dogs"
+
+↓
+
+[0.21,
+0.87,
+-0.54,
+...
+768 numbers]
+
+Similar meanings have similar vectors.
+
+⸻
+
+Example
+
+Car
+
+and
+
+Automobile
+
+produce very similar vectors.
+
+Even though words differ.
+
+⸻
+
+Embedding Models
+
+OpenAI
+
+text-embedding-3-small
+text-embedding-3-large
+
+Sentence Transformers
+
+all-MiniLM
+BGE
+E5
+MPNet
+
+Google
+
+Gemini Embeddings
+
+Cohere
+
+embed-v4
+
+NVIDIA
+
+NV-Embed
+
+⸻
+
+Embedding Dimensions
+
+Example
+
+384
+768
+1024
+1536
+3072
+
+Each document becomes one vector.
+
+⸻
+
+6. Vector Database
+
+Stores embeddings.
+
+Traditional DB
+
+Stores text.
+
+Vector DB
+
+Stores vectors.
+
+⸻
+
+Popular Vector Databases
+
+FAISS
+ChromaDB
+Pinecone
+Weaviate
+Milvus
+Qdrant
+Redis
+ElasticSearch
+Azure AI Search
+pgvector
+
+⸻
+
+Each entry stores
+
+Vector
+Original Text
+Metadata
+
+Example
+
+Vector
+↓
+[0.91,0.24,0.55...]
+Text
+↓
+Annual leave policy
+Metadata
+↓
+page=22
+document=HR.pdf
+
+⸻
+
+Metadata
+
+Additional information.
+
+Example
+
+Author
+Date
+Source
+Page Number
+Department
+Category
+Language
+
+Useful for filtering.
+
+⸻
+
+7. User Query
+
+User asks:
+
+How many annual leaves do employees receive?
+
+⸻
+
+8. Query Embedding
+
+Convert query into vector.
+
+Question
+↓
+Embedding
+
+Same embedding model should be used for documents and queries.
+
+⸻
+
+9. Similarity Search
+
+Compare query vector with document vectors.
+
+Goal:
+
+Find nearest vectors.
+
+⸻
+
+Similarity Metrics
+
+Cosine Similarity
+
+Most common.
+
+Formula
+
+cos(A,B)=A·B/(||A|| ||B||)
+
+Range
+
+-1 to 1
+
+1 = identical
+
+0 = unrelated
+
+⸻
+
+Euclidean Distance
+
+Straight-line distance.
+
+Smaller = better.
+
+⸻
+
+Dot Product
+
+Frequently used in modern embedding systems.
+
+⸻
+
+Top-K Retrieval
+
+Retrieve top K chunks.
+
+Example
+
+Top 5
+Top 10
+Top 20
+
+⸻
+
+Example
+
+Question
+
+Leave Policy
+
+Returns
+
+Chunk 11
+Chunk 29
+Chunk 67
+
+⸻
+
+10. Prompt Construction
+
+Prompt contains
+
+System Prompt
+Retrieved Context
+User Question
+
+Example
+
+Context
+Employees receive
+30 annual leave days.
+Question
+How many leave days?
+Answer only from context.
+
+⸻
+
+11. LLM Generation
+
+LLM reads retrieved context.
+
+Generates answer.
+
+Instead of hallucinating.
+
+⸻
+
+Example
+
+Question
+Annual leave?
+Retrieved
+30 days
+↓
+Answer
+Employees receive 30 annual leave days.
+
+⸻
+
+Complete RAG Pipeline
+
+Documents
+↓
+Load
+↓
+Clean
+↓
+Chunk
+↓
+Embedding
+↓
+Vector DB
+↓
+User Question
+↓
+Query Embedding
+↓
+Similarity Search
+↓
+Top Chunks
+↓
+Prompt
+↓
+LLM
+↓
+Final Answer
+
+⸻
+
+Indexing Pipeline
+
+Performed once.
+
+Documents
+↓
+Chunk
+↓
+Embedding
+↓
+Store in Vector DB
+
+⸻
+
+Retrieval Pipeline
+
+Performed for every user query.
+
+Question
+↓
+Embedding
+↓
+Vector Search
+↓
+Retrieve
+↓
+LLM
+
+⸻
+
+Types of RAG
+
+1. Naive RAG
+
+Simple pipeline.
+
+Question
+↓
+Retriever
+↓
+LLM
+
+Easy to implement.
+
+⸻
+
+2. Advanced RAG
+
+Adds:
+
+* Query rewriting
+* Better chunking
+* Reranking
+* Filtering
+* Hybrid search
+
+Higher accuracy.
+
+⸻
+
+3. Modular RAG
+
+Each module is replaceable.
+
+Retriever
+Reranker
+Memory
+Generator
+Guardrails
+Evaluation
+
+Very flexible.
+
+⸻
+
+4. Agentic RAG
+
+Uses AI agents.
+
+Agent decides:
+
+* Search?
+* Database?
+* API?
+* Web?
+* Calculator?
+
+Most advanced architecture.
+
+⸻
+
+Hybrid Search
+
+Combines:
+
+Dense Search
++
+Keyword Search
+
+Dense
+
+Uses embeddings.
+
+Keyword
+
+Uses BM25.
+
+Much better than either alone.
+
+⸻
+
+BM25
+
+Traditional keyword search algorithm.
+
+Good for:
+
+* Exact words
+* Rare terms
+* Product IDs
+* Error codes
+
+⸻
+
+Dense Retrieval
+
+Uses embeddings.
+
+Finds semantic similarity.
+
+Example
+
+Car
+Automobile
+
+Matches correctly.
+
+⸻
+
+Sparse Retrieval
+
+Uses word frequency.
+
+Example
+
+TF-IDF
+
+BM25
+
+⸻
+
+Reranking
+
+Initial retrieval may return noisy chunks.
+
+Reranker sorts results again.
+
+Top20
+↓
+Cross Encoder
+↓
+Top5
+
+Accuracy improves significantly.
+
+⸻
+
+Popular Rerankers
+
+Cohere Rerank
+BGE Reranker
+Cross Encoder
+Jina AI Reranker
+
+⸻
+
+Query Expansion
+
+Original
+
+Laptop battery issue
+
+Expanded
+
+Laptop battery problem
+Battery draining
+Battery charging failure
+
+Improves recall.
+
+⸻
+
+Query Rewriting
+
+Transforms vague questions.
+
+Example
+
+Original
+Benefits?
+↓
+Rewritten
+What employee benefits are available according to HR policy?
+
+⸻
+
+Multi Query Retrieval
+
+Generate multiple versions.
+
+Query1
+Query2
+Query3
+
+Retrieve separately.
+
+Merge results.
+
+⸻
+
+Parent-Child Retrieval
+
+Parent
+
+Whole Chapter
+
+Child
+
+Small Chunks
+
+Retrieve child.
+
+Return parent.
+
+Maintains context.
+
+⸻
+
+Multi Vector Retrieval
+
+One document.
+
+Multiple embeddings.
+
+Example
+
+Title Vector
+Summary Vector
+Paragraph Vector
+
+Improves search.
+
+⸻
+
+Context Compression
+
+Retrieved documents may be too long.
+
+Compress.
+
+Keep only relevant sentences.
+
+⸻
+
+Context Window
+
+Maximum tokens LLM accepts.
+
+Example
+
+32K
+128K
+200K
+1M
+
+Cannot exceed.
+
+⸻
+
+Metadata Filtering
+
+Search only:
+
+Department=HR
+Year=2025
+Language=English
+
+⸻
+
+Caching
+
+Cache:
+
+* Query embeddings
+* Retrieved chunks
+* Final responses
+
+Reduces latency.
+
+⸻
+
+Evaluation Metrics
+
+Precision
+
+Relevant retrieved documents.
+
+⸻
+
+Recall
+
+Relevant documents found.
+
+⸻
+
+MRR
+
+Mean Reciprocal Rank.
+
+Measures ranking quality.
+
+⸻
+
+NDCG
+
+Normalized Discounted Cumulative Gain.
+
+Evaluates ranking order.
+
+⸻
+
+Hit Rate
+
+Whether correct document appears.
+
+⸻
+
+Faithfulness
+
+Checks if answer is supported by retrieved context.
+
+⸻
+
+Groundedness
+
+Answer should come from retrieved documents, not model memory.
+
+⸻
+
+Common Embedding Models
+
+OpenAI text-embedding-3-small
+OpenAI text-embedding-3-large
+BGE Large
+E5 Large
+MiniLM
+MPNet
+Instructor XL
+NV-Embed
+Cohere Embed
+Gemini Embeddings
+
+⸻
+
+Popular Vector Databases
+
+FAISS
+ChromaDB
+Pinecone
+Milvus
+Weaviate
+Qdrant
+Redis
+ElasticSearch
+Azure AI Search
+pgvector
+
+⸻
+
+Popular Frameworks
+
+LangChain
+LlamaIndex
+Haystack
+DSPy
+Semantic Kernel
+AutoGen
+CrewAI
+LangGraph
+
+⸻
+
+Advantages of RAG
+
+* Reduces hallucinations.
+* Accesses up-to-date information.
+* Uses private company data securely.
+* No need to retrain the LLM for every document update.
+* Cost-effective compared to fine-tuning.
+* Easy to scale.
+* Better explainability by citing retrieved sources.
+
+⸻
+
+Limitations of RAG
+
+* Retrieval quality determines answer quality.
+* Poor chunking leads to poor retrieval.
+* Large vector databases require storage and maintenance.
+* Embedding generation can be computationally expensive.
+* Context window limits still apply.
+* Retrieval latency may slow responses.
+* Complex pipelines increase system complexity.
+
+⸻
+
+RAG vs Fine-Tuning
+
+Feature	RAG	Fine-Tuning
+Uses external knowledge	✅	❌
+Updates knowledge quickly	✅	❌ (requires retraining)
+Hallucination reduction	✅	Limited
+Cost	Lower	Higher
+Best for	Dynamic/private data	Changing model behavior or style
+Stores knowledge in	Vector DB	Model weights
+Training required	No	Yes
+
+⸻
+
+Real-World Applications of RAG
+
+* Chatbots for company knowledge bases.
+* Customer support assistants.
+* Legal document search.
+* Healthcare information assistants.
+* Financial report analysis.
+* Code assistants with project repositories.
+* Research paper Q&A.
+* Educational tutoring systems.
+* Enterprise search.
+* FAQ automation.
+* HR policy assistants.
+* Compliance and audit systems.
+
+⸻
+
+Best Practices for Building a High-Quality RAG System
+
+1. Use high-quality embedding models.
+2. Clean documents before indexing.
+3. Choose an appropriate chunk size (typically 300–800 tokens).
+4. Use chunk overlap (50–150 tokens) to preserve context.
+5. Store rich metadata for filtering.
+6. Combine dense retrieval with BM25 (hybrid search).
+7. Use a reranker to improve retrieval quality.
+8. Keep prompts concise and instruct the LLM to answer only from retrieved context.
+9. Evaluate retrieval and generation separately.
+10. Cache embeddings and frequent queries to reduce latency.
+11. Monitor retrieval accuracy and hallucination rates.
+12. Regularly update or re-index the vector database when source documents change.
+
+⸻
+
+Interview Questions on RAG
+
+1. What is Retrieval-Augmented Generation (RAG)?
+2. Why is RAG preferred over relying solely on an LLM?
+3. Explain the complete RAG pipeline.
+4. What are embeddings, and why are they important?
+5. What is a vector database?
+6. What is cosine similarity?
+7. Why is chunking necessary?
+8. What is chunk overlap?
+9. What is metadata filtering?
+10. Difference between dense retrieval and sparse retrieval.
+11. What is hybrid search?
+12. What is reranking?
+13. What is query rewriting?
+14. Explain parent-child retrieval.
+15. What is context compression?
+16. RAG vs fine-tuning: when would you choose each?
+17. What metrics are used to evaluate RAG systems?
+18. What causes hallucinations in RAG, and how can they be reduced?
+19. Which embedding models and vector databases have you used?
+20. How would you build a production-ready RAG pipeline?
+
+⸻
+
+One-Line Summary
+
+Retrieval-Augmented Generation (RAG) is a framework that enhances Large Language Models by retrieving relevant information from external knowledge sources (using embeddings and vector databases) before generating a response, resulting in more accurate, up-to-date, and context-aware answers without retraining the model.
