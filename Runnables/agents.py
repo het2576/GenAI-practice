@@ -12,6 +12,42 @@ from tavily import TavilyClient
 from rich import print
 from langchain.agents import create_agent 
 from langchain.agents.middleware import wrap_tool_call
+from datetime import datetime
+import pytz
+
+
+@tool
+def get_websearch(query: str) -> str:
+    """Search the web and return the top 3 result links."""
+
+    response = tavily_client.search(
+
+        query=query,
+        search_depth="basic",
+        max_results=3
+    )
+
+    results = response.get("results", [])
+    if not results:
+        return "No web results found."
+    
+    return "\n\n".join(
+        f"{i + 1}. {result.get('title', 'No title')}\n"
+        f"URL: {result.get('url', '')}\n"
+        f"Content: {result.get('content', '')[:500]}"
+        for i, result in enumerate(results)
+    )
+   
+    
+
+@tool
+
+def get_time(zone: str) -> str:
+
+    """Get the current time for a given IANA timezone."""
+    time_zone = pytz.timezone(zone)
+    current_time = datetime.now(time_zone)
+    return f"Time in {zone}: {current_time.strftime('%H:%M:%S')}"
 
 @tool
 def get_weather(city: str) -> str:
@@ -82,7 +118,7 @@ def human_approval(request, handler):
 
 agent = create_agent(
     llm,
-    tools = [get_weather,get_news],
+    tools = [get_weather,get_news,get_time,get_websearch],
     system_prompt= "you are a helpful city assistant.",
     middleware= [human_approval]
 )
