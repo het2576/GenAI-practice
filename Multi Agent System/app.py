@@ -16,10 +16,10 @@ load_dotenv()
 
 STAGES = ["lead", "source", "draft", "desk"]
 STAGE_META = {
-    "lead": {"label": "Lead", "role": "Search correspondent", "desc": "Wires in the first leads on the story."},
-    "source": {"label": "Source", "role": "Field reader", "desc": "Pulls the fullest account from the strongest lead."},
-    "draft": {"label": "Draft", "role": "Staff writer", "desc": "Files the story for the desk."},
-    "desk": {"label": "Desk", "role": "Copy editor", "desc": "Reads it back, marks it up, stamps a grade."},
+    "lead": {"label": "Lead", "role": "Search correspondent", "desc": "Wires in the first leads on the story.", "code": "01", "verb": "Scout"},
+    "source": {"label": "Source", "role": "Field reader", "desc": "Pulls the fullest account from the strongest lead.", "code": "02", "verb": "Verify"},
+    "draft": {"label": "Draft", "role": "Staff writer", "desc": "Files the story for the desk.", "code": "03", "verb": "Write"},
+    "desk": {"label": "Desk", "role": "Copy editor", "desc": "Reads it back, marks it up, stamps a grade.", "code": "04", "verb": "Review"},
 }
 STATUS_TEXT = {"pending": "PENDING", "running": "ON THE WIRE", "done": "FILED", "error": "KILLED"}
 
@@ -216,7 +216,7 @@ def memo_html(raw: str) -> str:
 
 
 def status_dot(status: str) -> str:
-    return f'<span class="dot dot--{status}"></span>'
+    return f'<span class="dot dot--{status}" aria-hidden="true"></span>'
 
 
 def stepper_html() -> str:
@@ -227,27 +227,31 @@ def stepper_html() -> str:
         tabs.append(
             f"""
             <div class="docket-tab is-{status}">
-              <div class="docket-tab-top">{status_dot(status)}<span class="docket-tab-status">{STATUS_TEXT[status]}</span></div>
-              <div class="docket-tab-label">{meta['label']}</div>
+              <div class="docket-tab-top"><span class="stage-code">{meta['code']}</span>{status_dot(status)}<span class="docket-tab-status">{STATUS_TEXT[status]}</span></div>
+              <div class="docket-tab-label"><span>{meta['label']}</span><span class="docket-tab-verb">{meta['verb']}</span></div>
               <div class="docket-tab-role">{meta['role']}</div>
             </div>
             """
         )
-    return f'<div class="docket">{"".join(tabs)}</div>'
+    return f'<section class="docket" aria-label="Assignment workflow"><div class="wire-rail" aria-hidden="true"></div>{"".join(tabs)}</section>'
 
 
 def stage_card_html(stage: str) -> str:
     meta = STAGE_META[stage]
     status = st.session_state.stage_status[stage]
-    header = f'<div class="doc-card-head"><span class="doc-card-eyebrow">{meta["label"].upper()} — {meta["desc"]}</span></div>'
+    header = f'''<div class="doc-card-head">
+      <div class="doc-card-kicker"><span class="stage-code">{meta["code"]}</span><span class="doc-card-eyebrow">{meta["verb"]} / {meta["role"]}</span></div>
+      <div class="doc-card-title-row"><h2 class="doc-card-title">{meta["label"]}</h2><span class="card-status card-status--{status}">{STATUS_TEXT[status]}</span></div>
+      <p class="doc-card-desc">{meta["desc"]}</p>
+    </div>'''
 
     if status == "pending":
-        return f'<div class="doc-card doc-card--empty">{header}<p class="empty-state">Awaiting assignment.</p></div>'
+        return f'<article class="doc-card doc-card--empty">{header}<div class="empty-state"><span aria-hidden="true">↳</span><p>Waiting for the desk to open this file.</p></div></article>'
     if status == "error":
         err = esc(st.session_state.errors.get(stage, "Unknown error."))
-        return f'<div class="doc-card doc-card--error">{header}<p class="error-state">Story killed &mdash; {err}</p></div>'
+        return f'<article class="doc-card doc-card--error">{header}<div class="error-state"><strong>File interrupted</strong><span>{err}</span></div></article>'
     if status == "running":
-        return f'<div class="doc-card doc-card--running">{header}<p class="running-state">On the wire<span class="cursor">▍</span></p></div>'
+        return f'<article class="doc-card doc-card--running">{header}<div class="running-state"><span class="signal-bars" aria-hidden="true"><i></i><i></i><i></i></span><span>Working this file</span><span class="cursor">▍</span></div></article>'
 
     content = st.session_state.results.get(stage, "")
     if stage == "lead":
@@ -258,7 +262,7 @@ def stage_card_html(stage: str) -> str:
         inner = f'<div class="report-sheet">{report_to_html(content)}</div>'
     else:
         inner = memo_html(content)
-    return f'<div class="doc-card doc-card--{stage}">{header}{inner}</div>'
+    return f'<article class="doc-card doc-card--{stage}">{header}{inner}</article>'
 
 
 # ---------------------------------------------------------------------------
@@ -375,6 +379,114 @@ h1, h2, h3 { font-family: 'Fraunces', Georgia, serif; }
 [data-testid="stSidebar"] .stButton button { background: var(--brass); color: var(--ink-950); border: none; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.06em; text-transform: uppercase; font-size: 0.78rem; font-weight: 600; width: 100%; padding: 0.6rem 0; }
 [data-testid="stSidebar"] .stButton button:hover { background: #e0a458; color: var(--ink-950); }
 .stDownloadButton button { background: transparent; border: 1px solid var(--brass); color: var(--brass); font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; }
+
+/* Assignment room — a high-contrast operational layer over the editorial file. */
+:root {
+  --ink-950: #080D18;
+  --ink-900: #0E1628;
+  --ink-800: #131E33;
+  --ink-700: #293751;
+  --paper: #F3F0E8;
+  --paper-dim: #CBC8BE;
+  --brass: #FF8B61;
+  --cyan: #66D6E8;
+  --redline: #FF6D78;
+  --slate: #95A3BD;
+  --quiet: #65738D;
+  --success: #83D6AB;
+}
+
+html { scroll-behavior: smooth; }
+.stApp {
+  background:
+    radial-gradient(ellipse 70% 45% at 92% -8%, rgba(102, 214, 232, 0.10), transparent 65%),
+    radial-gradient(ellipse 44% 30% at 8% 88%, rgba(255, 139, 97, 0.08), transparent 70%),
+    var(--ink-950);
+}
+.block-container { max-width: 1220px; padding-top: 2.6rem; padding-bottom: 4rem; }
+[data-testid="stSidebar"] { background: var(--ink-900); border-right: 1px solid rgba(149, 163, 189, 0.18); }
+[data-testid="stSidebar"] > div:first-child { padding-top: 2.1rem; }
+
+/* The masthead behaves like a calm briefing header, not a decorative newspaper banner. */
+.masthead {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1.25rem;
+  align-items: end;
+  padding: 0 0 1.5rem;
+  margin: 0 0 1.5rem;
+  border-bottom: 1px solid rgba(149, 163, 189, 0.30);
+}
+.masthead::after { content: ''; position: absolute; height: 2px; width: min(190px, 32%); bottom: -1px; left: 0; background: linear-gradient(90deg, var(--brass), var(--cyan)); }
+.masthead-eyebrow { color: var(--cyan); font-size: 0.68rem; letter-spacing: 0.16em; }
+.masthead-title { max-width: 780px; margin: 0.35rem 0 0.45rem; color: var(--paper); font-size: clamp(2.8rem, 6.5vw, 5.5rem); line-height: 0.94; letter-spacing: -0.055em; }
+.masthead-sub { max-width: 500px; color: var(--paper-dim); font-size: 1.18rem; line-height: 1.35; }
+.masthead-note { align-self: center; display: flex; align-items: center; gap: 0.55rem; color: var(--slate); font: 500 0.68rem/1.25 'JetBrains Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase; }
+.masthead-note::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 0 4px rgba(102, 214, 232, 0.12); }
+
+/* The horizontal wire is the page's signature: it connects actual handoffs. */
+.docket { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; overflow: visible; margin: 0 0 2.4rem; border: 1px solid rgba(149, 163, 189, 0.20); border-radius: 0; background: rgba(19, 30, 51, 0.62); }
+.wire-rail { position: absolute; z-index: 0; top: 34px; right: 12.5%; left: 12.5%; height: 1px; background: linear-gradient(90deg, var(--quiet), var(--quiet) 72%, rgba(101, 115, 141, 0.12)); }
+.docket-tab { position: relative; z-index: 1; min-height: 132px; padding: 1rem 1.1rem 1.05rem; background: transparent; border: 0; border-right: 1px solid rgba(149, 163, 189, 0.16); transition: background .22s ease, box-shadow .22s ease; }
+.docket-tab:last-child { border-right: 0; }
+.docket-tab:hover { background: rgba(255,255,255,0.035); }
+.docket-tab.is-running { background: linear-gradient(180deg, rgba(255, 139, 97, 0.12), rgba(255, 139, 97, 0.025)); box-shadow: inset 0 -2px 0 var(--brass); }
+.docket-tab.is-done { background: rgba(131, 214, 171, 0.035); }
+.docket-tab.is-error { background: rgba(255, 109, 120, 0.08); box-shadow: inset 0 -2px 0 var(--redline); }
+.docket-tab-top { position: relative; display: flex; min-height: 20px; align-items: center; gap: 0.45rem; margin: 0 0 0.72rem; }
+.stage-code { font: 500 0.62rem/1 'JetBrains Mono', monospace; letter-spacing: 0.08em; color: var(--quiet); }
+.dot { position: relative; width: 10px; height: 10px; border: 2px solid var(--ink-800); background: var(--quiet); box-shadow: 0 0 0 1px var(--quiet); }
+.dot--running { background: var(--brass); border-color: var(--ink-800); box-shadow: 0 0 0 1px var(--brass), 0 0 18px rgba(255, 139, 97, 0.65); }
+.dot--done { background: var(--success); box-shadow: 0 0 0 1px var(--success); }
+.dot--error { background: var(--redline); box-shadow: 0 0 0 1px var(--redline); }
+.docket-tab-status { color: var(--quiet); font-size: 0.61rem; letter-spacing: 0.1em; }
+.docket-tab.is-running .docket-tab-status { color: var(--brass); }
+.docket-tab.is-done .docket-tab-status { color: var(--success); }
+.docket-tab.is-error .docket-tab-status { color: var(--redline); }
+.docket-tab-label { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; color: var(--paper); font: 600 1.35rem/1 'Fraunces', Georgia, serif; }
+.docket-tab-verb { color: var(--slate); font: 500 0.62rem/1 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.07em; }
+.docket-tab-role { margin-top: 0.4rem; color: var(--slate); font-size: 0.68rem; line-height: 1.3; }
+
+/* Files are intentionally roomy and read as distinct artifacts, not generic cards. */
+.doc-card { position: relative; overflow: hidden; margin: 0 0 1.1rem; padding: 1.25rem 1.45rem 1.5rem; border: 1px solid rgba(149, 163, 189, 0.20); border-radius: 0; background: rgba(19, 30, 51, 0.75); box-shadow: none; animation: fadeUp .45s ease both; }
+.doc-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: var(--quiet); }
+.doc-card--lead::before { background: var(--cyan); }
+.doc-card--source::before, .doc-card--draft::before { background: var(--brass); }
+.doc-card--desk::before { background: var(--redline); }
+.doc-card--running::before { background: var(--brass); animation: scan 1.2s ease-in-out infinite; }
+.doc-card--error { border-color: rgba(255, 109, 120, 0.55); }
+.doc-card--error::before { background: var(--redline); }
+.doc-card-head { margin: 0 0 1.05rem; padding: 0 0 0.85rem; border-bottom: 1px solid rgba(149, 163, 189, 0.18); }
+.doc-card-kicker { display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.5rem; }
+.doc-card-eyebrow { color: var(--slate); font-size: 0.65rem; letter-spacing: 0.11em; }
+.doc-card-title-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.doc-card-title { margin: 0; color: var(--paper); font: 600 clamp(1.35rem, 2.5vw, 1.8rem)/1 'Fraunces', Georgia, serif; letter-spacing: -0.025em; }
+.card-status { flex: 0 0 auto; color: var(--quiet); font: 500 0.61rem/1 'JetBrains Mono', monospace; letter-spacing: 0.1em; }
+.card-status--done { color: var(--success); }.card-status--running { color: var(--brass); }.card-status--error { color: var(--redline); }
+.doc-card-desc { max-width: 630px; margin: 0.5rem 0 0; color: var(--slate); font: italic 0.98rem/1.35 'Newsreader', Georgia, serif; }
+.doc-card--empty { min-height: 168px; background: rgba(19, 30, 51, 0.38); }
+.empty-state { display: flex; align-items: center; gap: 0.7rem; color: var(--quiet); font: 0.82rem/1.4 'JetBrains Mono', monospace; }
+.empty-state span { color: var(--cyan); font-size: 1.1rem; }.empty-state p { margin: 0; }
+.running-state { display: inline-flex; align-items: center; gap: 0.62rem; color: var(--brass); font: 500 0.75rem/1 'JetBrains Mono', monospace; letter-spacing: 0.05em; text-transform: uppercase; }
+.signal-bars { display: inline-flex; height: 13px; align-items: end; gap: 2px; }.signal-bars i { display: block; width: 3px; background: currentColor; animation: levels .9s ease-in-out infinite alternate; }.signal-bars i:nth-child(1) { height: 40%; }.signal-bars i:nth-child(2) { height: 100%; animation-delay: -.3s; }.signal-bars i:nth-child(3) { height: 65%; animation-delay: -.55s; }
+.error-state { display: grid; gap: 0.35rem; color: var(--redline); font: 0.8rem/1.45 'JetBrains Mono', monospace; }.error-state strong { text-transform: uppercase; letter-spacing: 0.07em; font-weight: 500; }
+@keyframes scan { 0%,100% { opacity: 1; } 50% { opacity: .28; } } @keyframes levels { to { transform: scaleY(.35); } }
+
+.telex-feed { color: #DBE5F1; border-left: 1px solid var(--cyan); font-size: 0.79rem; line-height: 1.78; }.telex-feed a { color: var(--cyan); text-underline-offset: 0.18em; }.telex-feed::-webkit-scrollbar-thumb { background: var(--quiet); }
+.clip-sheet { background: #E9E5DC; color: #172033; padding: 1.25rem 1.35rem; border: 1px solid #C5C0B4; box-shadow: 7px 7px 0 rgba(8,13,24,.55); }.clip-tape { color: #627086; }
+.report-sheet { background: #F3F0E8; color: #182033; padding: clamp(1.5rem, 4vw, 2.65rem); border: 1px solid #D1CCC0; box-shadow: 9px 9px 0 rgba(8,13,24,.50); }.report-sheet h2 { color: #D4535A; }.report-sheet h3, .report-sheet strong { color: #172033; }.report-sheet p.lede::first-letter, .report-sheet li::marker { color: #D4535A; }.report-sheet a { color: #B5444C; }.report-sheet table { font-size: .78rem; }
+.memo { background: #F3F0E8; color: #182033; padding: 1.8rem 2rem; border: 1px solid #D1CCC0; box-shadow: 9px 9px 0 rgba(8,13,24,.50); }.memo-head { color: #647188; }.redline-list li { line-height: 1.65; }.stamp { border-color: #D4535A; }.stamp-value,.stamp-label { color: #D4535A; }.verdict { border-left-color: #D4535A; color: #273146; }
+
+/* Assignment controls use familiar form behavior with stronger hierarchy. */
+.brief-eyebrow { color: var(--cyan); font-size: .65rem; letter-spacing: .14em; }.brief-title { margin-bottom: .35rem; color: var(--paper); font-size: 1.8rem; letter-spacing: -.035em; }.brief-help { margin: 0 0 1.15rem; color: var(--slate); font: .88rem/1.45 'Newsreader', Georgia, serif; }
+[data-testid="stSidebar"] .stTextInput input { min-height: 2.8rem; border: 1px solid rgba(149,163,189,.40); border-radius: 0; background: #080D18; color: var(--paper); font-size: .98rem; } [data-testid="stSidebar"] .stTextInput input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(102,214,232,.13); }
+[data-testid="stSidebar"] .stButton button { min-height: 2.85rem; border-radius: 0; background: var(--brass); color: #111827; box-shadow: 4px 4px 0 rgba(255, 139, 97, .22); transition: transform .18s ease, box-shadow .18s ease, background .18s ease; }[data-testid="stSidebar"] .stButton button:hover { background: #FFAE7E; transform: translate(-2px,-2px); box-shadow: 6px 6px 0 rgba(255, 139, 97, .16); }[data-testid="stSidebar"] .stButton button:active { transform: translate(0); box-shadow: 2px 2px 0 rgba(255, 139, 97, .18); }
+.stDownloadButton { margin-top: 1.1rem; }.stDownloadButton button { width: 100%; min-height: 2.5rem; border-color: rgba(102,214,232,.7); border-radius: 0; color: var(--cyan); }.stDownloadButton button:hover { border-color: var(--cyan); background: rgba(102,214,232,.08); color: var(--paper); }
+button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--cyan) !important; outline-offset: 3px !important; }
+
+@media (max-width: 760px) { .block-container { padding: 1.65rem 1rem 3rem; }.masthead { grid-template-columns: 1fr; gap: .75rem; }.masthead-title { font-size: clamp(2.65rem, 14vw, 4rem); }.masthead-note { align-self: start; }.docket { grid-template-columns: 1fr 1fr; }.wire-rail { display: none; }.docket-tab { min-height: 118px; padding: .85rem; }.docket-tab:nth-child(3) { border-right: 0; }.docket-tab:nth-child(-n+2) { border-bottom: 1px solid rgba(149,163,189,.16); }.docket-tab-label { font-size: 1.18rem; }.docket-tab-verb { display: none; }.doc-card { padding: 1.05rem 1rem 1.2rem; }.doc-card-title-row { align-items: flex-start; }.card-status { padding-top: .2rem; }.report-sheet,.memo { padding: 1.25rem; box-shadow: 5px 5px 0 rgba(8,13,24,.5); }.stamp { position: static; margin: 0 0 1.25rem auto; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
 </style>
     """
 )
@@ -387,16 +499,16 @@ h1, h2, h3 { font-family: 'Fraunces', Georgia, serif; }
 with st.sidebar:
     st.html('<div class="brief-eyebrow">New assignment</div>')
     st.html('<div class="brief-title">Pitch the story</div>')
+    st.html('<p class="brief-help">Give the desk a precise subject. It will scout, verify, write, and review one connected file.</p>')
     topic = st.text_input(
         "What's the story?",
         placeholder="e.g. Quantum computing breakthroughs in 2026",
-        label_visibility="collapsed",
+        help="Use a specific question, person, event, or trend for more useful research.",
     )
     dispatch = st.button("Dispatch the desk")
     st.html(
-        '<p style="font-family:\'JetBrains Mono\',monospace;font-size:0.7rem;color:#8A93A6;margin-top:0.8rem;">'
-        "Four correspondents work the story in sequence: a search lead, a field reader, "
-        "a staff writer, and a copy desk that grades the file.</p>"
+        '<p style="font-family:\'JetBrains Mono\',monospace;font-size:0.67rem;line-height:1.6;letter-spacing:.03em;color:#95A3BD;margin-top:1.15rem;">'
+        "THE ROUTE: SCOUT → VERIFY → WRITE → REVIEW</p>"
     )
     if st.session_state.results.get("draft") and st.session_state.stage_status.get("draft") == "done":
         st.download_button(
@@ -413,9 +525,12 @@ with st.sidebar:
 st.html(
     f"""
     <div class="masthead">
-      <div class="masthead-eyebrow">Vol. I — Global Desk — {date.today().strftime('%B %d, %Y')}</div>
-      <h1 class="masthead-title">The Assignment Desk</h1>
-      <div class="masthead-sub">Four correspondents. One story, filed start to finish.</div>
+      <div>
+        <div class="masthead-eyebrow">Global desk / {date.today().strftime('%B %d, %Y')}</div>
+        <h1 class="masthead-title">The Assignment Desk</h1>
+        <div class="masthead-sub">From first signal to finished file, with every handoff visible.</div>
+      </div>
+      <div class="masthead-note">Live research workflow</div>
     </div>
     """
 )
