@@ -1,4 +1,3 @@
-import os 
 from typing import TypedDict, Annotated
 from dotenv import load_dotenv
 from langchain_mistralai import ChatMistralAI
@@ -7,6 +6,7 @@ from langgraph.graph import StateGraph, START , END
 load_dotenv()
 
 llm = ChatMistralAI(model="mistral-medium-latest", temperature=0.1)
+
 def merge_score_dicts(existing :dict , newupdate : dict) -> dict:
     if existing is None:
         return newupdate 
@@ -27,6 +27,7 @@ def toxicity_node(state: AnalyzerState) -> dict:
         "Return ONLY the plain integer number, nothing else.\n\n"
         f"Text:\n{state['raw_text']}"
     )
+
     response = llm.invoke(prompt)
     try:
         score = int(response.content.strip())
@@ -45,6 +46,7 @@ def copyright_node(state: AnalyzerState) -> dict:
         "Return ONLY the plain integer number, nothing else.\n\n"
         f"Text:\n{state['raw_text']}"
     )
+
     response = llm.invoke(prompt)
     try:
         score = int(response.content.strip())
@@ -64,6 +66,7 @@ def culture_node(state: AnalyzerState) -> dict:
         "Return ONLY the plain integer number, nothing else.\n\n"
         f"Text:\n{state['raw_text']}"
     )
+
     response = llm.invoke(prompt)
     try:
         score = int(response.content.strip())
@@ -83,12 +86,9 @@ builder.add_node("culture_node",culture_node)
 
 
 builder.add_edge(START,"toxicity_node")
-builder.add_edge(START,"copyright_check")
-builder.add_edge(START,"culture_node")
+builder.add_edge("toxicity_node", "copyright_check")
+builder.add_edge("copyright_check", "culture_node")
 
-
-builder.add_edge("toxicity_node",END)
-builder.add_edge("copyright_check",END)
 builder.add_edge("culture_node",END)
 
 
