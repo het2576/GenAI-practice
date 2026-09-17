@@ -3,10 +3,10 @@ import streamlit as st
 from typing import TypedDict, Annotated
 from langgraph.graph.message import add_messages
 from langgraph.graph import StateGraph, START, END
-from langchain_groq import ChatGroq
+from langchain_mistralai import ChatMistralAI
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_mistralai import MistralAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from dotenv import load_dotenv
 
@@ -26,7 +26,7 @@ st.set_page_config(
 # ----------------------------
 @st.cache_resource(show_spinner="Loading knowledge base...")
 def load_resources():
-    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    embeddings = MistralAIEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
     def build_retriver(pdf_path: str):
         loader = PyPDFLoader(pdf_path)
@@ -40,7 +40,7 @@ def load_resources():
     acedemic_retriever = build_retriver("academics_handbook.pdf")
     fee_retriever = build_retriver("fee_structure.pdf")
 
-    llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.4)
+    llm = ChatMistralAI(model="llama-3.3-70b-versatile", temperature=0.4)
 
     return acedemic_retriever, fee_retriever, llm
 
