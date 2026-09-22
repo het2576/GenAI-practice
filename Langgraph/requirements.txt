@@ -1,6 +1,7 @@
 langgraph
 langchain
 langchain-mistralai
+langchain-tavily
 python-dotenv
 
 langchain-community
